@@ -1,5 +1,6 @@
 import sqlite3, hashlib
 from tkinter import *
+from tkinter import ttk
 from PIL import Image,ImageTk
 from tkinter import simpledialog
 from functools import partial
@@ -16,21 +17,17 @@ backend = default_backend()
 salt = b'2444'
 
 kdf = PBKDF2HMAC(
-    algorithm=hashes.SHA256(),
+    algorithm=hashes.SHA3_512(),
     length=32,
     salt=salt,
     iterations=100000,
     backend=backend
 )
 
-encryptionKey = 0
-
 def encrypt(message: bytes, key: bytes) -> bytes:
     return Fernet(key).encrypt(message)
 
 def decrypt(message: bytes, token: bytes) -> bytes: #joe mama
-    message = bytes(message)
-    token = bytes(token) #yuh
     return Fernet(token).decrypt(message)
 
 
@@ -66,7 +63,7 @@ window.update()
 window.title("Password Vault")
 
 def hashPassword(input):
-    hash1 = hashlib.sha256(input)
+    hash1 = hashlib.sha3_512(input)
     hash1 = hash1.hexdigest()
 
     return hash1
@@ -180,12 +177,13 @@ def loginScreen():
     for widget in window.winfo_children():
         widget.destroy()
 
-    window.geometry('250x125')
-    stev = Image.open("D:/senior software xaxa/pwgen project/funnyresources/SteveMinecraft.png")
+    window.geometry('250x372')
+    stev = Image.open("funnyresources/SteveMinecraft.png")
     stev = stev.resize((120, 120))
     stev = ImageTk.PhotoImage(stev)
-    steve = Label(image=stev)
-    steve.image = stev
+    stev.image = stev
+    #steve = Label(image=stev)
+    #steve.image = stev
     #steve.pack()
 
     lbl = Label(window, text="Enter Master Password")
@@ -217,24 +215,26 @@ def loginScreen():
             lbl1.config(text="Wrong Password")
     '''
     def getMasterPassword():
-            global Pss
-            Pss = txt.get().encode()
-            checkHashedPassword = hashPassword(txt.get().encode('utf-8'))
-            
-            cursor.execute('SELECT * FROM masterpassword WHERE id = 1 AND password = ?', [(checkHashedPassword)])
-            return cursor.fetchall()
+        global Pss
+        Pss = txt.get().encode()
+        checkHashedPassword = hashPassword(txt.get().encode('utf-8'))
+        
+        cursor.execute('SELECT * FROM masterpassword WHERE id = 1 AND password = ?', [(checkHashedPassword)])
+        return cursor.fetchall()
 
     def checkPassword():
         password = getMasterPassword()
 
         if password:
-            vaultScreen()
             global encryptionKey
             global Pss
             encryptionKey = base64.urlsafe_b64encode(kdf.derive(Pss))
+            print(encryptionKey)
+            vaultScreen()
         else:
             txt.delete(0, 'end')
-            
+            lbl1.config(text="Wrong Password")
+
     def resetPassword():
         resetScreen()
 
@@ -254,6 +254,9 @@ def loginScreen():
     ponger.pack(pady=5, side= TOP)
     quit_btn = Button(window, text='quit', command=window.quit)
     quit_btn.pack(pady=10)
+    
+    sg = ttk.Sizegrip(window)
+    sg.pack()
 
 
 def vaultScreen():
@@ -267,6 +270,7 @@ def vaultScreen():
         website = encrypt(popUp(text1).encode(), encryptionKey)
         username = encrypt(popUp(text2).encode(), encryptionKey)
         password = encrypt(popUp(text3).encode(), encryptionKey)
+        print(website, username, password)
 
         insert_fields = """INSERT INTO vault(website, username, password) 
         VALUES(?, ?, ?) """
@@ -281,7 +285,7 @@ def vaultScreen():
         vaultScreen()
 
     window.geometry('750x550')
-    window.resizable(height=None, width=None)
+    window.resizable(True, True)
     lbl = Label(window, text="Password Vault")
     lbl.grid(column=1)
 
@@ -304,7 +308,8 @@ def vaultScreen():
 
             if (len(array) == 0):
                 break
-
+            
+            print(encryptionKey, 'keyo')
             lbl1 = Label(window, text=(decrypt(array[i][1], encryptionKey)), font=("Helvetica", 12))
             lbl1.grid(column=0, row=(i+3))
             lbl2 = Label(window, text=(decrypt(array[i][2], encryptionKey)), font=("Helvetica", 12))
@@ -324,9 +329,13 @@ def vaultScreen():
 cursor.execute('SELECT * FROM masterpassword')
 
 def main():
+    sg = ttk.Sizegrip(window)
+    sg.grid(row=1, sticky=SE)
     if (cursor.fetchall()):
         loginScreen()
     else:
+        global encryptionKey
+        encryptionKey = 0
         firstTimeScreen()
     window.mainloop()
 
