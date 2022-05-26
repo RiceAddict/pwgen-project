@@ -30,7 +30,7 @@ def encrypt(message: bytes, key: bytes) -> bytes:
 
 def decrypt(message: bytes, token: bytes) -> bytes: #joe mama
     message = bytes(message)
-    token = bytes(token)
+    token = bytes(token) #yuh
     return Fernet(token).decrypt(message)
 
 
