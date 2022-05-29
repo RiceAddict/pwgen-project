@@ -5,24 +5,32 @@ from PIL import Image,ImageTk
 from tkinter import simpledialog
 from functools import partial
 import uuid
+import re
+import subprocess
 import pyperclip
 import base64
-import os
+import winsound
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 
 backend = default_backend()
-salt = b'2444'
 
-kdf = PBKDF2HMAC(
-    algorithm=hashes.SHA3_512(),
-    length=32,
-    salt=salt,
-    iterations=100000,
-    backend=backend
-)
+unique = subprocess.check_output("wmic csproduct get uuid").decode() #get permanent UUID of device
+match = re.search(r"\bUUID\b[\s\r\n]+([^\s\r\n]+)", unique)
+if match is not None:
+    unique = match.group(1)
+    if unique is not None:
+        # Remove the surrounding whitespace (newlines, space, etc)
+        # and useless dashes etc, by only keeping hex (0-9 A-F) chars.
+        unique = re.sub(r"[^0-9A-Fa-f]+", "", unique)
+
+def hashPassword(passw):
+    hash1 = hashlib.sha3_512(passw)
+    hash1 = hash1.hexdigest()
+
+    return hash1
 
 def encrypt(message: bytes, key: bytes) -> bytes:
     return Fernet(key).encrypt(message)
@@ -30,6 +38,19 @@ def encrypt(message: bytes, key: bytes) -> bytes:
 def decrypt(message: bytes, token: bytes) -> bytes: #joe mama
     return Fernet(token).decrypt(message)
 
+the_real_salt = hashPassword(unique.encode()) #use permanent UUID, hash it and use as salt
+
+salt = bytes(the_real_salt.encode())
+
+kdf = PBKDF2HMAC(
+    algorithm=hashes.SHA3_512(),
+    length=32,
+    salt=salt,
+    iterations=1000000,
+    backend=backend
+)
+
+encryptionKey = base64.urlsafe_b64encode(kdf.derive(the_real_salt.encode())) #permanent UUID used to derive encryption key, no need to delete database if changing master
 
 #database code
 with sqlite3.connect('password_vault.db') as db:
@@ -62,12 +83,6 @@ window.update()
 
 window.title("Password Vault")
 
-def hashPassword(input):
-    hash1 = hashlib.sha3_512(input)
-    hash1 = hash1.hexdigest()
-
-    return hash1
-
 def firstTimeScreen():
     for widget in window.winfo_children():
         widget.destroy()
@@ -88,7 +103,6 @@ def firstTimeScreen():
     txt1 = Entry(window, width=20, show="*")
     txt1.pack()
 
-
     def savePassword():
         if txt.get() == txt1.get():
             sql = "DELETE FROM masterpassword WHERE id = 1"
@@ -99,9 +113,6 @@ def firstTimeScreen():
             key = str(uuid.uuid4().hex)
             recoveryKey = hashPassword(key.encode('utf-8'))
 
-            global encryptionKey
-            encryptionKey = base64.urlsafe_b64encode(kdf.derive(txt.get().encode()))
-            
             insert_password = """INSERT INTO masterpassword(password, recoveryKey)
             VALUES(?, ?) """
             cursor.execute(insert_password, ((hashedPassword), (recoveryKey)))
@@ -182,9 +193,6 @@ def loginScreen():
     stev = stev.resize((120, 120))
     stev = ImageTk.PhotoImage(stev)
     stev.image = stev
-    #steve = Label(image=stev)
-    #steve.image = stev
-    #steve.pack()
 
     lbl = Label(window, text="Enter Master Password")
     lbl.config(anchor=CENTER)
@@ -197,25 +205,8 @@ def loginScreen():
     lbl1 = Label(window)
     lbl1.config(anchor=CENTER)
     lbl1.pack(side=TOP)
-    '''
+    
     def getMasterPassword():
-        checkHashedPassword = hashPassword(txt.get().encode('utf-8'))
-        global encryptionKey
-        encryptionKey = base64.urlsafe_b64encode(kdf.derive(txt.get().encode()))
-        cursor.execute('SELECT * FROM masterpassword WHERE id = 1 AND password = ?', [(checkHashedPassword)])
-        return cursor.fetchall()
-
-    def checkPassword():
-        password = getMasterPassword()
-
-        if password:
-            vaultScreen()
-        else:
-            txt.delete(0, 'end')
-            lbl1.config(text="Wrong Password")
-    '''
-    def getMasterPassword():
-        global Pss
         Pss = txt.get().encode()
         checkHashedPassword = hashPassword(txt.get().encode('utf-8'))
         
@@ -226,14 +217,12 @@ def loginScreen():
         password = getMasterPassword()
 
         if password:
-            global encryptionKey
-            global Pss
-            encryptionKey = base64.urlsafe_b64encode(kdf.derive(Pss))
             print(encryptionKey)
             vaultScreen()
         else:
             txt.delete(0, 'end')
             lbl1.config(text="Wrong Password")
+            winsound.PlaySound("funnyresources/vineboom.mp3", winsound.SND_ASYNC)
 
     def resetPassword():
         resetScreen()
@@ -246,18 +235,17 @@ def loginScreen():
     
     testolab = Label(window, text='')
     testolab.pack(pady=10)
-    
-    def bruh(window):
-        testolab.config(text='wow insane')
 
-    ponger = Button(window, image=stev, command=lambda: bruh(window))#, height=5, width=5)
+    def bruh():
+        def bro():
+            testolab.config(text='')
+        testolab.config(text='wow insane')
+        testolab.after(2000,lambda: bro())
+
+    ponger = Button(window, image=stev, command=lambda: bruh())#, height=5, width=5)
     ponger.pack(pady=5, side= TOP)
     quit_btn = Button(window, text='quit', command=window.quit)
     quit_btn.pack(pady=10)
-    
-    sg = ttk.Sizegrip(window)
-    sg.pack()
-
 
 def vaultScreen():
     for widget in window.winfo_children():
@@ -329,13 +317,14 @@ def vaultScreen():
 cursor.execute('SELECT * FROM masterpassword')
 
 def main():
+    window.iconbitmap("funnyresources/favicon.ico")
     sg = ttk.Sizegrip(window)
     sg.grid(row=1, sticky=SE)
     if (cursor.fetchall()):
         loginScreen()
     else:
-        global encryptionKey
-        encryptionKey = 0
+        # global encryptionKey
+        # encryptionKey = 0
         firstTimeScreen()
     window.mainloop()
 
