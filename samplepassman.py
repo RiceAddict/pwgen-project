@@ -130,7 +130,9 @@ def recoveryScreen(key):
         widget.destroy()
 
     window.geometry('250x125')
-    lbl = Label(window, text="Save this key to be able to recover account")
+    savetxt= '''Save this key to be able to recover account
+    write it down somewhere or sum'''
+    lbl = Label(window, text=savetxt)
     lbl.config(anchor=CENTER)
     lbl.pack()
 
@@ -180,6 +182,8 @@ def resetScreen():
         else:
             txt.delete(0, 'end')
             lbl1.config(text='Wrong Key')
+            winsound.PlaySound("funnyresources/vineboom.mp3", winsound.SND_ASYNC)
+
 
     btn = Button(window, text="Check Key", command=checkRecoveryKey)
     btn.pack(pady=5)
@@ -207,7 +211,6 @@ def loginScreen():
     lbl1.pack(side=TOP)
     
     def getMasterPassword():
-        Pss = txt.get().encode()
         checkHashedPassword = hashPassword(txt.get().encode('utf-8'))
         
         cursor.execute('SELECT * FROM masterpassword WHERE id = 1 AND password = ?', [(checkHashedPassword)])
@@ -267,8 +270,9 @@ def vaultScreen():
 
         vaultScreen()
 
-    def removeEntry(input):
-        cursor.execute("DELETE FROM vault WHERE id = ?", (input,))
+    def removeEntry(iput):
+        cursor.execute("DELETE FROM vault WHERE id = ?", (iput,))
+        winsound.PlaySound("funnyresources/baka.mp3", winsound.SND_ASYNC)
         db.commit()
         vaultScreen()
 

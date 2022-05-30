@@ -52,35 +52,36 @@ def strengthCheck(password):
     lower_letters = "qwertyuiopasdfghjklzxcvbnm"
     upper_letters = "QWERTYUIOPASDFGHJKLZXCVBNM"
     numberos = "0123456789"
-    strength = 0
 
-    if len(password) >= 18:
-        strength += 2
-    elif 12 < len(password) <= 17:
-        strength += 1
-    elif 8 <= len(password) <= 12:
-        strength += 1
-    else:
-        print('not long enough')
+    leno = False
+    if len(password) >= 10:
+        leno = True
 
+    upper = False
     for c in password:
         if c in upper_letters:
-            strength += 1
-            break
-    for c in password:
-        if c in lower_letters:
-            strength += 1
-            break
-    for c in password:
-        if c in numberos:
-            strength += 1
-            break
-    for c in password:
-        if c in symbols:
-            strength += 1
+            upper = True
             break
 
-    if strength > 5:
+    lower = False
+    for c in password:
+        if c in lower_letters:
+            lower = True
+            break
+    
+    numbe = False
+    for c in password:
+        if c in numberos:
+            numbe = True
+            break
+    
+    symbo = False
+    for c in password:
+        if c in symbols:
+            symbo = True
+            break
+
+    if leno is True and upper is True and lower is True and numbe is True and symbo is True:
         return True
     else:
         return False
@@ -99,7 +100,7 @@ def encrypt():
 def decrypt():
     pass
 
-# poger = make_commpass_dict()
+poger = make_commpass_dict()
 # print(generate(poger))
 # pass_dict_check('uhfh88h', poger)
-# add_pass(poger)
+add_pass(poger)
