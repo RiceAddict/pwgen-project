@@ -53,7 +53,7 @@ kdf = PBKDF2HMAC(
 encryptionKey = base64.urlsafe_b64encode(kdf.derive(the_real_salt.encode())) #permanent UUID used to derive encryption key, no need to delete database if changing master
 
 def opendoc():
-    path = 'EULA.pdf'
+    path = 'User docs.pdf'
     subprocess.Popen([path], shell=True)
 
 #database code
